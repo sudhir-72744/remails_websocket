@@ -222,7 +222,7 @@ export const POST = async (req: NextRequest) => {
     oAuth2Client.setCredentials({ refresh_token: decoded.refreshToken });
     const { credentials } = await oAuth2Client.refreshAccessToken();
     oAuth2Client.setCredentials(credentials);
-    console.log("reqrecieved")
+    console.log("req  recieved")
     const { threads, labelCounts } = await fetchEmailsAfterHistoryId(oAuth2Client, historyId, credentials.access_token!);
 
    console.log(threads)
