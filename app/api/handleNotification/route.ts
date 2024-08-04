@@ -17,7 +17,7 @@ export const POST = async (req: NextRequest) => {
       const socketId = users[userId];
       if (socketId) {
         io.to(socketId).emit('newEmail', {userId,email,newHistoryId});
-        console.log(`Notification emitted to user ${userId}`);
+        console.log(`Notification emitted to user ${userId} with soket id ${socketId}`);
       } else {
         console.warn(`No client registered for user ${userId}`);
       }
