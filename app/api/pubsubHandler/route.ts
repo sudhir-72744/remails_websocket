@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Send the decoded data to another endpoint
-    const res = await fetch('https://shiny-enigma-4xwq4x595grh5gqg-3000.app.github.dev/api/handleNotification', {
+    const res = await fetch(`${process.env.WEB_SOCKET_URI}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
