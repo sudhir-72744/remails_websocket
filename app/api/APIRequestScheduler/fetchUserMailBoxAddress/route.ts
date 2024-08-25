@@ -179,7 +179,7 @@ const handler = async (req: NextRequest) => {
       metaAddresses: Array.from(existingData.metaAddresses.entries()).map(([email, name]) => ({ email, name })),
     };
 
-    console.log('Update Data:', updateData); // Log update data to verify
+    // console.log('Update Data:', updateData); // Log update data to verify
 
     // Update database
     const result = await UserMailBoxAddress.findOneAndUpdate({ userId }, updateData, { upsert: true, new: true });

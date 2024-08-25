@@ -66,10 +66,12 @@ export const POST = async (req: NextRequest) => {
       const currentFetchTime = Date.now();
 
       if (currentFetchTime - lastFetchTimeMs < oneHour) {
+        console.log('Too early to make another request')
         return NextResponse.json({ success: true, message: "Too early to make another request" }, { status: 200 });
       }
     }
     if (scheduler.isUserAlreadyScheduled(userId)) {
+      console.log('Request already scheduled for this user')
       return NextResponse.json({ success: true, message: "Request already scheduled for this user" }, { status: 200 });
     }
 
@@ -80,31 +82,42 @@ export const POST = async (req: NextRequest) => {
     // Fetch emails
     const { messageIds, currentFetchTime } = await fetchEmails(oAuth2Client, lastFetchTime);
 
-    // Schedule API requests
-    const batchSize = 200;
-    let cumulativeDelay = 0;
-    const delayIncrement = 5000; // 2 seconds increment between batches
+    // Define batch size
+    const batchSize = 50;
 
-    for (let i = 0; i < messageIds.length; i += batchSize) {
-      const batch = messageIds.slice(i, i + batchSize);
+    if (messageIds.length >= batchSize) {
+      // Schedule API requests
+      let cumulativeDelay = 0;
+      const delayIncrement = 2000; // 2 seconds increment between batches
 
-      const requestTime = new Date(Date.now() + cumulativeDelay);
+      for (let i = 0; i < messageIds.length; i += batchSize) {
+        const batch = messageIds.slice(i, i + batchSize);
 
-      const request: ApiRequest = {
-        id: `fetch-${Date.now()}`, // Unique ID for each request
-        method: 'POST', // HTTP method
-        url: `${process.env.WEB_SOCKET_URI}/api/APIRequestScheduler/fetchUserMailBoxAddress`, // Endpoint URL
-        payload: { messageIds: batch, token, userId }, // Payload containing message IDs
-        scheduledTime: requestTime, // Schedule with calculated time
-        retryCount: 0,
-        maxTries: 10
-      };
+        const requestTime = new Date(Date.now() + cumulativeDelay);
 
-      scheduler.scheduleRequest(request);
-      cumulativeDelay += delayIncrement; // Increment the delay for the next batch
+        const request: ApiRequest = {
+          id: `fetch-${Date.now()}`, // Unique ID for each request
+          method: 'POST', // HTTP method
+          url: `${process.env.WEB_SOCKET_URI}/api/APIRequestScheduler/fetchUserMailBoxAddress`, // Endpoint URL
+          payload: { messageIds: batch, token, userId }, // Payload containing message IDs
+          scheduledTime: requestTime, // Schedule with calculated time
+          retryCount: 0,
+          maxTries: 10
+        };
+
+        scheduler.scheduleRequest(request);
+        cumulativeDelay += delayIncrement; // Increment the delay for the next batch
+      }
+
+      return NextResponse.json({ success: true, data: { currentFetchTime }, message: "Scheduled fetch successfully" }, { status: 200 });
+    } else {
+      // Return a success response with a message if message IDs are less than batch size
+      console.log('Not enough message IDs to schedule a request. Please try again after some time.')
+      return NextResponse.json({
+        success: true,
+        message: "Not enough message IDs to schedule a request. Please try again after some time."
+      }, { status: 200 });
     }
-
-    return NextResponse.json({ success: true, data: { currentFetchTime }, message: "Scheduled fetch successfully" }, { status: 200 });
   } catch (error) {
     console.error('Error retrieving emails or refreshing access token:', error);
     return NextResponse.json({ success: false, error: 'Failed to retrieve emails or refresh access token' }, { status: 500 });
